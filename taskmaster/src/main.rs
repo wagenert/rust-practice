@@ -1,5 +1,10 @@
 mod task;
 
+use std::{
+    fs::OpenOptions,
+    io::{BufReader, BufWriter},
+};
+
 use clap::{Parser, Subcommand};
 use task::TaskId;
 
@@ -10,6 +15,9 @@ struct Cli {
     /// Command to execute
     #[command(subcommand)]
     command: Command,
+    /// Json file to use
+    #[arg(long, short)]
+    filename: String,
 }
 
 #[derive(Clone, Subcommand)]
@@ -28,28 +36,46 @@ enum Command {
     },
 }
 
-static mut CURRENT_ID: TaskId = 0;
-static mut TASKS: Vec<Task> = vec![];
-
-fn main() {
+fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(cli.filename)?;
+    let read_buf = BufReader::new(&file);
+    let mut tasks: Vec<Task> = match serde_json::from_reader(read_buf) {
+        Ok(tasks) => tasks,
+        Err(err) => {
+            if err.is_eof() {
+                Vec::new()
+            } else {
+                panic!("Can not process file!");
+            }
+        }
+    };
     match cli.command {
         Command::List => {
             println!("Tasks");
-            for task in unsafe { TASKS.clone() } {
+            for task in tasks.iter() {
                 println!("{task}");
             }
         }
         Command::Create { title } => {
-            let task_id = unsafe { CURRENT_ID };
-            unsafe { CURRENT_ID += 1 };
-            let new_task = Task::new(task_id, title);
-            unsafe { TASKS.push(new_task) };
+            let task_id = tasks.len();
+            let new_task = Task::new(task_id as TaskId, title);
+            tasks.push(new_task);
+            let write_buf = BufWriter::new(file);
+            serde_json::to_writer(write_buf, &tasks)?;
         }
         Command::MarkDone { task_id } => {
-            if let Some(task) = unsafe { TASKS.get_mut(task_id as usize) } {
+            if let Some(task) = tasks.get_mut(task_id as usize) {
                 task.done();
+                let write_buf = BufWriter::new(file);
+                serde_json::to_writer(write_buf, &tasks)?;
             }
         }
     }
+    Ok(())
 }
