@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     id: TaskId,
     title: String,
@@ -34,3 +34,23 @@ impl fmt::Display for Task {
 }
 
 pub type TaskId = u32;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_task_creation() {
+        let task = Task::new(1, "Test Task".to_string());
+        assert_eq!(task.id, 1);
+        assert_eq!(task.title, "Test Task");
+        assert!(!task.done);
+    }
+
+    #[test]
+    fn test_task_done() {
+        let mut task = Task::new(1, "Test Task".to_string());
+        task.done();
+        assert!(task.done);
+    }
+}
