@@ -1,33 +1,9 @@
-use clap::{Parser, Subcommand};
-use taskmaster::task::Task;
-use taskmaster::task::TaskId;
-use taskmaster::task_list::TaskList;
-
-#[derive(Parser)]
-struct Cli {
-    /// Command to execute
-    #[command(subcommand)]
-    command: Command,
-    /// Json file to use
-    #[arg(long, short)]
-    filename: String,
-}
-
-#[derive(Clone, Subcommand, Debug)]
-enum Command {
-    /// List all tasks
-    List,
-    /// Create new tasks
-    Create {
-        /// Title of the new task
-        title: String,
-    },
-    /// Mark a task as done
-    MarkDone {
-        /// task_id to mark as done
-        task_id: TaskId,
-    },
-}
+use clap::Parser;
+use taskmaster::cli::Cli;
+use taskmaster::cli::Command;
+use taskmaster::tasks::task::Task;
+use taskmaster::tasks::task::TaskId;
+use taskmaster::tasks::task_list::TaskList;
 
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();

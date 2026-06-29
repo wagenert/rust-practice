@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::task::Task;
+use crate::tasks::task::Task;
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Default, Serialize, Deserialize, Debug)]
