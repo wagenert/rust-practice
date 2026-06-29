@@ -1,6 +1,6 @@
 use clap::Parser;
-use taskmaster::cli::Cli;
-use taskmaster::cli::Command;
+use taskmaster::cli::command::Command;
+use taskmaster::cli::parser::Cli;
 use taskmaster::tasks::task::Task;
 use taskmaster::tasks::task::TaskId;
 use taskmaster::tasks::task_list::TaskList;
