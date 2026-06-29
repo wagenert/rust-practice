@@ -1,4 +1,5 @@
 mod task;
+mod task_list;
 
 use std::{
     fs::OpenOptions,
@@ -6,10 +7,10 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
 use task::TaskId;
 
 use crate::task::Task;
+use crate::task_list::TaskList;
 
 #[derive(Parser)]
 struct Cli {
@@ -37,23 +38,6 @@ enum Command {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct TaskList {
-    tasks: Vec<Task>,
-}
-
-impl AsRef<[Task]> for TaskList {
-    fn as_ref(&self) -> &[Task] {
-        &self.tasks
-    }
-}
-
-impl TaskList {
-    fn push(&mut self, task: Task) {
-        self.tasks.push(task);
-    }
-}
-
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     match cli.command {
@@ -67,7 +51,7 @@ fn main() -> std::io::Result<()> {
                 let read_buf = BufReader::new(&file);
                 let tasks: TaskList = serde_json::from_reader(read_buf)?;
                 println!("Tasks");
-                for task in tasks.as_ref() {
+                for task in tasks.iter() {
                     println!("{task}");
                 }
             } else {
@@ -78,7 +62,7 @@ fn main() -> std::io::Result<()> {
         Command::Create { title } => {
             let mut tasks = read_tasklist(&cli.filename)?;
 
-            let task_id = tasks.tasks.len();
+            let task_id = tasks.len();
             let new_task = Task::new(task_id as TaskId, title);
             tasks.push(new_task);
             println!("tasks: {:?}", tasks);
@@ -87,7 +71,7 @@ fn main() -> std::io::Result<()> {
         Command::MarkDone { task_id } => {
             let mut tasks = read_tasklist(&cli.filename)?;
 
-            if let Some(task) = tasks.tasks.get_mut(task_id as usize) {
+            if let Some(task) = tasks.get_mut(task_id as usize) {
                 task.done();
             } else {
                 println!("Task with id {task_id} not found.");
@@ -109,7 +93,7 @@ fn read_tasklist(filename: &str) -> Result<TaskList, std::io::Error> {
         Ok(tasks) => tasks,
         Err(err) => {
             if err.is_eof() {
-                TaskList { tasks: Vec::new() }
+                TaskList::default()
             } else {
                 panic!("Can not process file!");
             }
