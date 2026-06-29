@@ -6,6 +6,7 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
+use serde::{Deserialize, Serialize};
 use task::TaskId;
 
 use crate::task::Task;
@@ -20,7 +21,7 @@ struct Cli {
     filename: String,
 }
 
-#[derive(Clone, Subcommand)]
+#[derive(Clone, Subcommand, Debug)]
 enum Command {
     /// List all tasks
     List,
@@ -36,6 +37,23 @@ enum Command {
     },
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct TaskList {
+    tasks: Vec<Task>,
+}
+
+impl AsRef<[Task]> for TaskList {
+    fn as_ref(&self) -> &[Task] {
+        &self.tasks
+    }
+}
+
+impl TaskList {
+    fn push(&mut self, task: Task) {
+        self.tasks.push(task);
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     match cli.command {
@@ -47,67 +65,66 @@ fn main() -> std::io::Result<()> {
                     .create(false)
                     .open(cli.filename)?;
                 let read_buf = BufReader::new(&file);
-                let tasks: Vec<Task> = serde_json::from_reader(read_buf)?;
+                let tasks: TaskList = serde_json::from_reader(read_buf)?;
                 println!("Tasks");
-                for task in tasks.iter() {
+                for task in tasks.as_ref() {
                     println!("{task}");
                 }
             } else {
                 println!("File does not exist. No tasks found.");
             }
+            Ok(())
         }
         Command::Create { title } => {
-            let file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(cli.filename)?;
-            let read_buf = BufReader::new(&file);
-            let mut tasks: Vec<Task> = match serde_json::from_reader(read_buf) {
-                Ok(tasks) => tasks,
-                Err(err) => {
-                    if err.is_eof() {
-                        Vec::new()
-                    } else {
-                        panic!("Can not process file!");
-                    }
-                }
-            };
+            let mut tasks = read_tasklist(&cli.filename)?;
 
-            let task_id = tasks.len();
+            let task_id = tasks.tasks.len();
             let new_task = Task::new(task_id as TaskId, title);
             tasks.push(new_task);
-            let write_buf = BufWriter::new(file);
-            serde_json::to_writer(write_buf, &tasks)?;
+            println!("tasks: {:?}", tasks);
+            write_takslist(&cli.filename, &tasks)
         }
         Command::MarkDone { task_id } => {
-            let file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(false)
-                .truncate(true)
-                .open(cli.filename)?;
-            let read_buf = BufReader::new(&file);
-            let mut tasks: Vec<Task> = match serde_json::from_reader(read_buf) {
-                Ok(tasks) => tasks,
-                Err(err) => {
-                    if err.is_eof() {
-                        Vec::new()
-                    } else {
-                        panic!("Can not process file!");
-                    }
-                }
-            };
+            let mut tasks = read_tasklist(&cli.filename)?;
 
-            if let Some(task) = tasks.get_mut(task_id as usize) {
+            if let Some(task) = tasks.tasks.get_mut(task_id as usize) {
                 task.done();
             } else {
                 println!("Task with id {task_id} not found.");
             }
-            let write_buf = BufWriter::new(file);
-            serde_json::to_writer(write_buf, &tasks)?;
+            write_takslist(&cli.filename, &tasks)
         }
     }
+}
+
+fn read_tasklist(filename: &str) -> Result<TaskList, std::io::Error> {
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(filename)?;
+    let read_buf = BufReader::new(&file);
+    let tasks: TaskList = match serde_json::from_reader(read_buf) {
+        Ok(tasks) => tasks,
+        Err(err) => {
+            if err.is_eof() {
+                TaskList { tasks: Vec::new() }
+            } else {
+                panic!("Can not process file!");
+            }
+        }
+    };
+    Ok(tasks)
+}
+
+fn write_takslist(filename: &str, tasks: &TaskList) -> Result<(), std::io::Error> {
+    let file = OpenOptions::new()
+        .write(true)
+        .create(false)
+        .truncate(true)
+        .open(filename)?;
+    let write_buf = BufWriter::new(&file);
+    serde_json::to_writer(write_buf, &tasks)?;
     Ok(())
 }
