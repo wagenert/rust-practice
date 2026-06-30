@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Parser;
 use taskmaster::cli::command::Command;
 use taskmaster::cli::parser::Cli;
@@ -5,7 +6,7 @@ use taskmaster::tasks::task::Task;
 use taskmaster::tasks::task::TaskId;
 use taskmaster::tasks::task_storage::TaskStorage;
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let cli = Cli::parse();
     let task_storage = TaskStorage::new(&cli.filename);
     match cli.command {
@@ -15,7 +16,7 @@ fn main() -> std::io::Result<()> {
     }
 }
 
-fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<(), std::io::Error> {
+fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
     if let Some(task) = tasks.get_mut(task_id as usize) {
@@ -26,7 +27,7 @@ fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<(), std::i
     task_storage.write(&tasks)
 }
 
-fn create_task(task_storage: &TaskStorage, title: String) -> Result<(), std::io::Error> {
+fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
     let task_id = tasks.len();
@@ -36,7 +37,7 @@ fn create_task(task_storage: &TaskStorage, title: String) -> Result<(), std::io:
     task_storage.write(&tasks)
 }
 
-fn list_tasks(task_storage: &TaskStorage) -> Result<(), std::io::Error> {
+fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
     match task_storage.read() {
         Ok(tasks) => {
             println!("Tasks");
@@ -45,14 +46,14 @@ fn list_tasks(task_storage: &TaskStorage) -> Result<(), std::io::Error> {
             }
             Ok(())
         }
-        Err(err) => match err.kind() {
-            std::io::ErrorKind::NotFound => {
+        Err(err) => match err.downcast_ref::<std::io::Error>() {
+            Some(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
                 println!("File does not exist. No tasks found.");
                 Ok(())
             }
             _ => {
                 println!("Error reading file: {}", err);
-                Err(err)
+                Err(anyhow::anyhow!(err))
             }
         },
     }

@@ -1,7 +1,9 @@
 use std::{
     fs::OpenOptions,
-    io::{BufReader, BufWriter, Error},
+    io::{BufReader, BufWriter},
 };
+
+use anyhow::Result;
 
 use crate::tasks::task_list::TaskList;
 
@@ -14,7 +16,7 @@ impl<'a> TaskStorage<'a> {
         Self { filename }
     }
 
-    pub fn read(&self) -> Result<TaskList, Error> {
+    pub fn read(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -28,14 +30,14 @@ impl<'a> TaskStorage<'a> {
                 if err.is_eof() {
                     Ok(TaskList::default())
                 } else {
-                    Err(Error::new(std::io::ErrorKind::InvalidData, err))
+                    Err(anyhow::anyhow!(err))
                 }
             }
         }?;
         Ok(tasks)
     }
 
-    pub fn write(&self, task_list: &TaskList) -> Result<(), std::io::Error> {
+    pub fn write(&self, task_list: &TaskList) -> Result<()> {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -44,5 +46,25 @@ impl<'a> TaskStorage<'a> {
         let write_buf = BufWriter::new(&file);
         serde_json::to_writer(write_buf, task_list)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_read_write() {
+        let filename = "test_tasks.json";
+        let storage = TaskStorage::new(filename);
+        let mut task_list = TaskList::default();
+        let task = crate::tasks::task::Task::new(1, "Test Task".to_string());
+        task_list.add_task(task);
+        storage.write(&task_list).unwrap();
+        let read_task_list = storage.read().unwrap();
+        assert_eq!(task_list.len(), read_task_list.len());
+        assert_eq!(task_list, read_task_list);
+        fs::remove_file(filename).unwrap();
     }
 }
