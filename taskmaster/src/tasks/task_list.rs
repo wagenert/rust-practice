@@ -27,3 +27,18 @@ impl TaskList {
         self.tasks.get_mut(index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_task_list() {
+        let mut task_list = TaskList::default();
+        assert!(task_list.is_empty());
+
+        let task = Task::new(0, "Test Task".to_string());
+        task_list.add_task(task);
+        assert_eq!(task_list.len(), 1);
+    }
+}

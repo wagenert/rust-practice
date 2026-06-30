@@ -21,6 +21,14 @@ impl Task {
     pub fn done(&mut self) {
         self.done = true;
     }
+
+    pub fn is_done(&self) -> bool {
+        self.done
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
 }
 
 impl fmt::Display for Task {

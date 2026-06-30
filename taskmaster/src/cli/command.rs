@@ -1,4 +1,8 @@
-use crate::tasks::task::TaskId;
+use crate::tasks::{
+    task::{Task, TaskId},
+    task_storage::TaskStorage,
+};
+use anyhow::Result;
 use clap::Subcommand;
 
 #[derive(Clone, Subcommand, Debug)]
@@ -15,4 +19,87 @@ pub enum Command {
         /// task_id to mark as done
         task_id: TaskId,
     },
+}
+
+pub fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<()> {
+    let mut tasks = task_storage.read()?;
+
+    if let Some(task) = tasks.get_mut(task_id as usize) {
+        task.done();
+    } else {
+        println!("Task with id {task_id} not found.");
+    }
+    task_storage.write(&tasks)
+}
+
+pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
+    let mut tasks = task_storage.read()?;
+
+    let task_id = tasks.len();
+    let new_task = Task::new(task_id as TaskId, title);
+    tasks.add_task(new_task);
+    println!("tasks: {:?}", tasks);
+    task_storage.write(&tasks)
+}
+
+pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
+    match task_storage.read() {
+        Ok(tasks) => {
+            println!("Tasks");
+            for task in tasks.iter() {
+                println!("{task}");
+            }
+            Ok(())
+        }
+        Err(err) => match err.downcast_ref::<std::io::Error>() {
+            Some(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                println!("File does not exist. No tasks found.");
+                Ok(())
+            }
+            _ => {
+                println!("Error reading file: {}", err);
+                Err(anyhow::anyhow!(err))
+            }
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_task() {
+        let task_storage = TaskStorage::new("test_tasks.json");
+        let title = "Test Task".to_string();
+        let result = create_task(&task_storage, title.clone());
+        assert!(result.is_ok());
+
+        let tasks = task_storage.read().unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks.iter().next().unwrap().title(), &title);
+    }
+
+    #[test]
+    fn test_mark_task_done() {
+        let task_storage = TaskStorage::new("test_tasks.json");
+        let title = "Test Task".to_string();
+        create_task(&task_storage, title.clone()).unwrap();
+
+        let result = mark_task_done(&task_storage, 0);
+        assert!(result.is_ok());
+
+        let tasks = task_storage.read().unwrap();
+        assert!(tasks.iter().next().unwrap().is_done());
+    }
+
+    #[test]
+    fn test_list_tasks() {
+        let task_storage = TaskStorage::new("test_tasks.json");
+        let title = "Test Task".to_string();
+        create_task(&task_storage, title.clone()).unwrap();
+
+        let result = list_tasks(&task_storage);
+        assert!(result.is_ok());
+    }
 }
