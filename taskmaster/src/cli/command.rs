@@ -67,10 +67,27 @@ pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        fs,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
+
+    static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn test_storage() -> (TaskStorage<'static>, &'static str) {
+        let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let filename = format!("test_tasks_command_{id}.json");
+        let filename = Box::leak(filename.into_boxed_str());
+        (TaskStorage::new(filename), filename)
+    }
+
+    fn cleanup(filename: &str) {
+        let _ = fs::remove_file(filename);
+    }
 
     #[test]
     fn test_create_task() {
-        let task_storage = TaskStorage::new("test_tasks.json");
+        let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
         let result = create_task(&task_storage, title.clone());
         assert!(result.is_ok());
@@ -78,11 +95,12 @@ mod tests {
         let tasks = task_storage.read().unwrap();
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks.iter().next().unwrap().title(), &title);
+        cleanup(filename);
     }
 
     #[test]
     fn test_mark_task_done() {
-        let task_storage = TaskStorage::new("test_tasks.json");
+        let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
         create_task(&task_storage, title.clone()).unwrap();
 
@@ -91,15 +109,17 @@ mod tests {
 
         let tasks = task_storage.read().unwrap();
         assert!(tasks.iter().next().unwrap().is_done());
+        cleanup(filename);
     }
 
     #[test]
     fn test_list_tasks() {
-        let task_storage = TaskStorage::new("test_tasks.json");
+        let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
         create_task(&task_storage, title.clone()).unwrap();
 
         let result = list_tasks(&task_storage);
         assert!(result.is_ok());
+        cleanup(filename);
     }
 }

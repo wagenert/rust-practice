@@ -52,12 +52,22 @@ impl<'a> TaskStorage<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    use std::{
+        fs,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
+
+    static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn test_filename() -> String {
+        let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::SeqCst);
+        format!("test_tasks_storage_{id}.json")
+    }
 
     #[test]
     fn test_read_write() {
-        let filename = "test_tasks.json";
-        let storage = TaskStorage::new(filename);
+        let filename = test_filename();
+        let storage = TaskStorage::new(&filename);
         let mut task_list = TaskList::default();
         let task = crate::tasks::task::Task::new(1, "Test Task".to_string());
         task_list.add_task(task);
@@ -65,6 +75,6 @@ mod tests {
         let read_task_list = storage.read().unwrap();
         assert_eq!(task_list.len(), read_task_list.len());
         assert_eq!(task_list, read_task_list);
-        fs::remove_file(filename).unwrap();
+        let _ = fs::remove_file(&filename);
     }
 }
