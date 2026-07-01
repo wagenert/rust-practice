@@ -26,10 +26,11 @@ pub fn mark_task_done(task_storage: &TaskStorage, task_id: TaskId) -> Result<()>
 
     if let Some(task) = tasks.get_mut(task_id) {
         task.mark_done();
+        task_storage.write(&tasks)
     } else {
         println!("Task with id {task_id} not found.");
+        Ok(())
     }
-    task_storage.write(&tasks)
 }
 
 pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
