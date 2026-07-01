@@ -6,6 +6,10 @@ use taskmaster::tasks::task_storage::TaskStorage;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    run(cli)
+}
+
+fn run(cli: Cli) -> Result<()> {
     let task_storage = TaskStorage::new(&cli.filename);
     match cli.command {
         Command::List => list_tasks(&task_storage),
