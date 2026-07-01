@@ -29,6 +29,10 @@ impl Task {
     pub fn title(&self) -> &str {
         &self.title
     }
+
+    pub fn id(&self) -> TaskId {
+        self.id
+    }
 }
 
 impl fmt::Display for Task {
@@ -36,7 +40,9 @@ impl fmt::Display for Task {
         write!(
             f,
             "Task {{ id: {}, title: {}, done: {} }}",
-            self.id, self.title, self.done
+            self.id(),
+            self.title(),
+            self.is_done()
         )
     }
 }
@@ -50,15 +56,15 @@ mod tests {
     #[test]
     fn test_task_creation() {
         let task = Task::new(1, "Test Task".to_string());
-        assert_eq!(task.id, 1);
-        assert_eq!(task.title, "Test Task");
-        assert!(!task.done);
+        assert_eq!(task.id(), 1);
+        assert_eq!(task.title(), "Test Task");
+        assert!(!task.is_done());
     }
 
     #[test]
     fn test_task_done() {
         let mut task = Task::new(1, "Test Task".to_string());
         task.done();
-        assert!(task.done);
+        assert!(task.is_done());
     }
 }

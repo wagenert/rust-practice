@@ -1,14 +1,16 @@
-use crate::tasks::task::Task;
+use std::collections::HashMap;
+
+use crate::tasks::task::{Task, TaskId};
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Default, Serialize, Deserialize, Debug)]
 pub struct TaskList {
-    tasks: Vec<Task>,
+    tasks: HashMap<TaskId, Task>,
 }
 
 impl TaskList {
     pub fn add_task(&mut self, task: Task) {
-        self.tasks.push(task);
+        self.tasks.insert(task.id(), task);
     }
 
     pub fn len(&self) -> usize {
@@ -19,12 +21,12 @@ impl TaskList {
         self.tasks.is_empty()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, Task> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, TaskId, Task> {
         self.tasks.iter()
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Task> {
-        self.tasks.get_mut(index)
+    pub fn get_mut(&mut self, id: TaskId) -> Option<&mut Task> {
+        self.tasks.get_mut(&id)
     }
 }
 
@@ -33,12 +35,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_task_list() {
+    fn test_task_list_add_and_get_by_id() {
         let mut task_list = TaskList::default();
         assert!(task_list.is_empty());
 
         let task = Task::new(0, "Test Task".to_string());
         task_list.add_task(task);
+
         assert_eq!(task_list.len(), 1);
+
+        let stored_task = task_list.get_mut(0).expect("task with id 0 should exist");
+        assert_eq!(stored_task.title(), "Test Task");
+        assert!(!stored_task.is_done());
+    }
+
+    #[test]
+    fn test_task_list_marks_task_done_by_id() {
+        let mut task_list = TaskList::default();
+        task_list.add_task(Task::new(42, "HashMap lookup".to_string()));
+
+        let task = task_list
+            .get_mut(42)
+            .expect("task with id 42 should be retrievable");
+        task.done();
+
+        let task = task_list
+            .get_mut(42)
+            .expect("task with id 42 should still exist");
+        assert!(task.is_done());
+    }
+
+    #[test]
+    fn test_task_list_replaces_existing_task_with_same_id() {
+        let mut task_list = TaskList::default();
+
+        task_list.add_task(Task::new(7, "First".to_string()));
+        task_list.add_task(Task::new(7, "Second".to_string()));
+
+        assert_eq!(task_list.len(), 1);
+        let task = task_list
+            .get_mut(7)
+            .expect("task with id 7 should exist after replacement");
+        assert_eq!(task.title(), "Second");
     }
 }

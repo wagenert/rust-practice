@@ -24,7 +24,7 @@ pub enum Command {
 pub fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
-    if let Some(task) = tasks.get_mut(task_id as usize) {
+    if let Some(task) = tasks.get_mut(task_id) {
         task.done();
     } else {
         println!("Task with id {task_id} not found.");
@@ -46,7 +46,7 @@ pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
     match task_storage.read() {
         Ok(tasks) => {
             println!("Tasks");
-            for task in tasks.iter() {
+            for (_, task) in tasks.iter() {
                 println!("{task}");
             }
             Ok(())
@@ -94,7 +94,7 @@ mod tests {
 
         let tasks = task_storage.read().unwrap();
         assert_eq!(tasks.len(), 1);
-        assert_eq!(tasks.iter().next().unwrap().title(), &title);
+        assert_eq!(tasks.iter().next().unwrap().1.title(), &title);
         cleanup(filename);
     }
 
@@ -108,7 +108,7 @@ mod tests {
         assert!(result.is_ok());
 
         let tasks = task_storage.read().unwrap();
-        assert!(tasks.iter().next().unwrap().is_done());
+        assert!(tasks.iter().next().unwrap().1.is_done());
         cleanup(filename);
     }
 
