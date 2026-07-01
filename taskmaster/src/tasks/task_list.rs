@@ -62,7 +62,7 @@ mod tests {
         let task = task_list
             .get_mut(task_id)
             .expect("task with id 42 should be retrievable");
-        task.done();
+        task.mark_done();
 
         let task = task_list
             .get_mut(task_id)

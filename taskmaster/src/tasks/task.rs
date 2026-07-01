@@ -18,7 +18,7 @@ impl Task {
         }
     }
 
-    pub fn done(&mut self) {
+    pub fn mark_done(&mut self) {
         self.done = true;
     }
 
@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn test_task_done() {
         let mut task = Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
-        task.done();
+        task.mark_done();
         assert!(task.is_done());
     }
 }
