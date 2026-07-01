@@ -38,7 +38,6 @@ pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
     let task_id = uuid::Uuid::new_v4();
     let new_task = Task::new(task_id, title);
     tasks.add_task(new_task);
-    println!("tasks: {:?}", tasks);
     task_storage.write(&tasks)
 }
 
@@ -48,8 +47,8 @@ pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
         println!("No tasks found.");
     } else {
         for task in tasks.iter() {
-            let status = if task.1.is_done() { "Done" } else { "Pending" };
-            println!("{}: {} [{}]", task.1.id(), task.1.title(), status);
+            let status = if task.is_done() { "Done" } else { "Pending" };
+            println!("{}: {} [{}]", task.id(), task.title(), status);
         }
     }
     Ok(())
@@ -85,7 +84,7 @@ mod tests {
 
         let tasks = task_storage.read().unwrap();
         assert_eq!(tasks.len(), 1);
-        assert_eq!(tasks.iter().next().unwrap().1.title(), &title);
+        assert_eq!(tasks.iter().next().unwrap().title(), &title);
         cleanup(filename);
     }
 
@@ -95,12 +94,12 @@ mod tests {
         let title = "Test Task".to_string();
         create_task(&task_storage, title.clone()).unwrap();
 
-        let task_id = task_storage.read().unwrap().iter().next().unwrap().1.id();
+        let task_id = task_storage.read().unwrap().iter().next().unwrap().id();
         let result = mark_task_done(&task_storage, task_id);
         assert!(result.is_ok());
 
         let tasks = task_storage.read().unwrap();
-        assert!(tasks.iter().next().unwrap().1.is_done());
+        assert!(tasks.iter().next().unwrap().is_done());
         cleanup(filename);
     }
 
