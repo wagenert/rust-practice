@@ -23,6 +23,7 @@ impl<'a> TaskStorage<'a> {
             .create(true)
             .truncate(false)
             .open(self.filename)?;
+        file.lock_shared()?;
         let read_buf = BufReader::new(&file);
         let tasks = match serde_json::from_reader(read_buf) {
             Ok(tasks) => Ok(tasks),
@@ -43,6 +44,7 @@ impl<'a> TaskStorage<'a> {
             .create(true)
             .truncate(true)
             .open(self.filename)?;
+        file.lock()?;
         let write_buf = BufWriter::new(&file);
         serde_json::to_writer(write_buf, task_list)?;
         Ok(())
