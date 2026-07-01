@@ -19,7 +19,6 @@ impl<'a> TaskStorage<'a> {
     pub fn read(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
-            .write(true)
             .create(true)
             .truncate(false)
             .open(self.filename)?;
