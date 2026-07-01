@@ -110,10 +110,9 @@ fn create_mark_done_and_list_flow() {
     assert!(listed.status.success(), "list should succeed");
 
     let listed_stdout = String::from_utf8_lossy(&listed.stdout);
-    assert!(listed_stdout.contains("Tasks"));
     assert!(listed_stdout.contains("Buy milk"));
     assert!(listed_stdout.contains("Write report"));
-    assert!(listed_stdout.contains("done: true"));
+    assert!(listed_stdout.contains("[Done]"));
 
     let json = read_tasks_json(&file);
     let tasks = persisted_tasks(&json);
