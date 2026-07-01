@@ -25,7 +25,7 @@ pub fn mark_task_done(task_storage: &TaskStorage, task_id: TaskId) -> Result<()>
     let mut tasks = task_storage.read()?;
 
     if let Some(task) = tasks.get_mut(task_id) {
-        task.done();
+        task.mark_done();
     } else {
         println!("Task with id {task_id} not found.");
     }
@@ -43,25 +43,16 @@ pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
 }
 
 pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
-    match task_storage.read() {
-        Ok(tasks) => {
-            println!("Tasks");
-            for (_, task) in tasks.iter() {
-                println!("{task}");
-            }
-            Ok(())
+    let tasks = task_storage.read()?;
+    if tasks.is_empty() {
+        println!("No tasks found.");
+    } else {
+        for task in tasks.iter() {
+            let status = if task.1.is_done() { "Done" } else { "Pending" };
+            println!("{}: {} [{}]", task.1.id(), task.1.title(), status);
         }
-        Err(err) => match err.downcast_ref::<std::io::Error>() {
-            Some(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
-                println!("File does not exist. No tasks found.");
-                Ok(())
-            }
-            _ => {
-                println!("Error reading file: {}", err);
-                Err(anyhow::anyhow!(err))
-            }
-        },
     }
+    Ok(())
 }
 
 #[cfg(test)]
