@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Values};
 
 use crate::tasks::task::{Task, TaskId};
 use serde::{Deserialize, Serialize};
@@ -21,8 +21,8 @@ impl TaskList {
         self.tasks.is_empty()
     }
 
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, TaskId, Task> {
-        self.tasks.iter()
+    pub fn iter(&self) -> Values<'_, uuid::Uuid, Task> {
+        self.tasks.values()
     }
 
     pub fn get_mut(&mut self, id: TaskId) -> Option<&mut Task> {
