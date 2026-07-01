@@ -69,7 +69,7 @@ mod tests {
         let filename = test_filename();
         let storage = TaskStorage::new(&filename);
         let mut task_list = TaskList::default();
-        let task = crate::tasks::task::Task::new(1, "Test Task".to_string());
+        let task = crate::tasks::task::Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         task_list.add_task(task);
         storage.write(&task_list).unwrap();
         let read_task_list = storage.read().unwrap();

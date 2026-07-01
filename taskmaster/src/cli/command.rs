@@ -21,7 +21,7 @@ pub enum Command {
     },
 }
 
-pub fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<()> {
+pub fn mark_task_done(task_storage: &TaskStorage, task_id: TaskId) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
     if let Some(task) = tasks.get_mut(task_id) {
@@ -35,8 +35,8 @@ pub fn mark_task_done(task_storage: &TaskStorage, task_id: u32) -> Result<()> {
 pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
-    let task_id = tasks.len();
-    let new_task = Task::new(task_id as TaskId, title);
+    let task_id = uuid::Uuid::new_v4();
+    let new_task = Task::new(task_id, title);
     tasks.add_task(new_task);
     println!("tasks: {:?}", tasks);
     task_storage.write(&tasks)
@@ -104,7 +104,8 @@ mod tests {
         let title = "Test Task".to_string();
         create_task(&task_storage, title.clone()).unwrap();
 
-        let result = mark_task_done(&task_storage, 0);
+        let task_id = task_storage.read().unwrap().iter().next().unwrap().1.id();
+        let result = mark_task_done(&task_storage, task_id);
         assert!(result.is_ok());
 
         let tasks = task_storage.read().unwrap();

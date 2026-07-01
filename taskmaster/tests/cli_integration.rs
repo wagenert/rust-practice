@@ -9,6 +9,7 @@ use serde_json::Value;
 
 #[derive(Debug)]
 struct TaskSnapshot {
+    id: String,
     title: String,
     done: bool,
 }
@@ -66,6 +67,10 @@ fn persisted_tasks(json: &Value) -> Vec<TaskSnapshot> {
 }
 
 fn task_snapshot_from_value(value: &Value) -> TaskSnapshot {
+    let id = value["id"]
+        .as_str()
+        .expect("task id should be a string")
+        .to_string();
     let title = value["title"]
         .as_str()
         .expect("task title should be a string")
@@ -74,7 +79,7 @@ fn task_snapshot_from_value(value: &Value) -> TaskSnapshot {
         .as_bool()
         .expect("task done should be a boolean");
 
-    TaskSnapshot { title, done }
+    TaskSnapshot { id, title, done }
 }
 
 fn task_by_title<'a>(tasks: &'a [TaskSnapshot], title: &str) -> &'a TaskSnapshot {
@@ -94,7 +99,11 @@ fn create_mark_done_and_list_flow() {
     let create_two = run_taskmaster(&file, &["create", "Write report"]);
     assert!(create_two.status.success(), "second create should succeed");
 
-    let mark_done = run_taskmaster(&file, &["mark-done", "1"]);
+    let created_json = read_tasks_json(&file);
+    let created_tasks = persisted_tasks(&created_json);
+    let write_report_id = task_by_title(&created_tasks, "Write report").id.clone();
+
+    let mark_done = run_taskmaster(&file, &["mark-done", &write_report_id]);
     assert!(mark_done.status.success(), "mark-done should succeed");
 
     let listed = run_taskmaster(&file, &["list"]);
@@ -122,7 +131,8 @@ fn mark_done_with_unknown_id_does_not_change_tasks() {
     let create = run_taskmaster(&file, &["create", "Only task"]);
     assert!(create.status.success(), "create should succeed");
 
-    let unknown_mark = run_taskmaster(&file, &["mark-done", "99"]);
+    let unknown_id = uuid::Uuid::new_v4().to_string();
+    let unknown_mark = run_taskmaster(&file, &["mark-done", &unknown_id]);
     assert!(
         unknown_mark.status.success(),
         "mark-done with unknown id should still succeed"

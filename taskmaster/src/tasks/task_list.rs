@@ -32,6 +32,7 @@ impl TaskList {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -39,12 +40,15 @@ mod tests {
         let mut task_list = TaskList::default();
         assert!(task_list.is_empty());
 
-        let task = Task::new(0, "Test Task".to_string());
+        let task_id = uuid::Uuid::new_v4();
+        let task = Task::new(task_id, "Test Task".to_string());
         task_list.add_task(task);
 
         assert_eq!(task_list.len(), 1);
 
-        let stored_task = task_list.get_mut(0).expect("task with id 0 should exist");
+        let stored_task = task_list
+            .get_mut(task_id)
+            .expect("task with id should exist");
         assert_eq!(stored_task.title(), "Test Task");
         assert!(!stored_task.is_done());
     }
@@ -52,15 +56,16 @@ mod tests {
     #[test]
     fn test_task_list_marks_task_done_by_id() {
         let mut task_list = TaskList::default();
-        task_list.add_task(Task::new(42, "HashMap lookup".to_string()));
+        let task_id = uuid::Uuid::new_v4();
+        task_list.add_task(Task::new(task_id, "HashMap lookup".to_string()));
 
         let task = task_list
-            .get_mut(42)
+            .get_mut(task_id)
             .expect("task with id 42 should be retrievable");
         task.done();
 
         let task = task_list
-            .get_mut(42)
+            .get_mut(task_id)
             .expect("task with id 42 should still exist");
         assert!(task.is_done());
     }
@@ -69,13 +74,15 @@ mod tests {
     fn test_task_list_replaces_existing_task_with_same_id() {
         let mut task_list = TaskList::default();
 
-        task_list.add_task(Task::new(7, "First".to_string()));
-        task_list.add_task(Task::new(7, "Second".to_string()));
+        let task_id = uuid::Uuid::new_v4();
+        task_list.add_task(Task::new(task_id, "First".to_string()));
+        task_list.add_task(Task::new(task_id, "First".to_string()));
+        task_list.add_task(Task::new(task_id, "Second".to_string()));
 
         assert_eq!(task_list.len(), 1);
         let task = task_list
-            .get_mut(7)
-            .expect("task with id 7 should exist after replacement");
+            .get_mut(task_id)
+            .expect("task with id should exist after replacement");
         assert_eq!(task.title(), "Second");
     }
 }

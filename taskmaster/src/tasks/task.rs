@@ -47,7 +47,7 @@ impl fmt::Display for Task {
     }
 }
 
-pub type TaskId = u32;
+pub type TaskId = uuid::Uuid;
 
 #[cfg(test)]
 mod tests {
@@ -55,15 +55,14 @@ mod tests {
 
     #[test]
     fn test_task_creation() {
-        let task = Task::new(1, "Test Task".to_string());
-        assert_eq!(task.id(), 1);
+        let task = Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         assert_eq!(task.title(), "Test Task");
         assert!(!task.is_done());
     }
 
     #[test]
     fn test_task_done() {
-        let mut task = Task::new(1, "Test Task".to_string());
+        let mut task = Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         task.done();
         assert!(task.is_done());
     }
