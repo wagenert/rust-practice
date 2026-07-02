@@ -48,8 +48,8 @@ pub fn list_tasks(task_storage: &dyn TaskStorage) -> Result<()> {
         println!("No tasks found.");
     } else {
         for task in tasks.iter() {
-            let status = if task.is_done() { "Done" } else { "Pending" };
-            println!("{}: {} [{}]", task.id(), task.title(), status);
+            let status = if task.is_done() { "✓" } else { " " };
+            println!("[{}]: {}", status, task.title());
         }
     }
     Ok(())

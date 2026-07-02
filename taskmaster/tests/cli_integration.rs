@@ -112,7 +112,7 @@ fn create_mark_done_and_list_flow() {
     let listed_stdout = String::from_utf8_lossy(&listed.stdout);
     assert!(listed_stdout.contains("Buy milk"));
     assert!(listed_stdout.contains("Write report"));
-    assert!(listed_stdout.contains("[Done]"));
+    assert!(listed_stdout.contains("[✓]"));
 
     let json = read_tasks_json(&file);
     let tasks = persisted_tasks(&json);
