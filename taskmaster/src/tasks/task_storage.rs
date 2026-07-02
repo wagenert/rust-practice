@@ -7,16 +7,22 @@ use anyhow::Result;
 
 use crate::tasks::task_list::TaskList;
 
-pub struct TaskStorage<'a> {
+pub trait TaskStorage {
+    fn read(&self) -> Result<TaskList>;
+    fn write(&self, task_list: &TaskList) -> Result<()>;
+}
+pub struct JsonFileTaskStorage<'a> {
     filename: &'a str,
 }
 
-impl<'a> TaskStorage<'a> {
+impl<'a> JsonFileTaskStorage<'a> {
     pub fn new(filename: &'a str) -> Self {
         Self { filename }
     }
+}
 
-    pub fn read(&self) -> Result<TaskList> {
+impl<'a> TaskStorage for JsonFileTaskStorage<'a> {
+    fn read(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -38,7 +44,7 @@ impl<'a> TaskStorage<'a> {
         Ok(tasks)
     }
 
-    pub fn write(&self, task_list: &TaskList) -> Result<()> {
+    fn write(&self, task_list: &TaskList) -> Result<()> {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -69,7 +75,7 @@ mod tests {
     #[test]
     fn test_read_write() {
         let filename = test_filename();
-        let storage = TaskStorage::new(&filename);
+        let storage = JsonFileTaskStorage::new(&filename);
         let mut task_list = TaskList::default();
         let task = crate::tasks::task::Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         task_list.add_task(task);
