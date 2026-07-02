@@ -22,11 +22,11 @@ pub enum Command {
 }
 
 pub fn mark_task_done(task_storage: &dyn TaskStorage, task_id: TaskId) -> Result<()> {
-    let mut tasks = task_storage.read()?;
+    let mut tasks = task_storage.load()?;
 
     if let Some(task) = tasks.get_mut(task_id) {
         task.mark_done();
-        task_storage.write(&tasks)
+        task_storage.save(&tasks)
     } else {
         println!("Task with id {task_id} not found.");
         Ok(())
@@ -34,16 +34,16 @@ pub fn mark_task_done(task_storage: &dyn TaskStorage, task_id: TaskId) -> Result
 }
 
 pub fn create_task(task_storage: &dyn TaskStorage, title: String) -> Result<()> {
-    let mut tasks = task_storage.read()?;
+    let mut tasks = task_storage.load()?;
 
     let task_id = uuid::Uuid::new_v4();
     let new_task = Task::new(task_id, title);
     tasks.add_task(new_task);
-    task_storage.write(&tasks)
+    task_storage.save(&tasks)
 }
 
 pub fn list_tasks(task_storage: &dyn TaskStorage) -> Result<()> {
-    let tasks = task_storage.read()?;
+    let tasks = task_storage.load()?;
     if tasks.is_empty() {
         println!("No tasks found.");
     } else {
@@ -84,7 +84,7 @@ mod tests {
         let result = create_task(task_storage, title.clone());
         assert!(result.is_ok());
 
-        let tasks = task_storage.read().unwrap();
+        let tasks = task_storage.load().unwrap();
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks.iter().next().unwrap().title(), &title);
         cleanup(&filename);
@@ -97,11 +97,11 @@ mod tests {
         let task_storage = &task_storage as &dyn TaskStorage;
         create_task(task_storage, title.clone()).unwrap();
 
-        let task_id = task_storage.read().unwrap().iter().next().unwrap().id();
+        let task_id = task_storage.load().unwrap().iter().next().unwrap().id();
         let result = mark_task_done(task_storage, task_id);
         assert!(result.is_ok());
 
-        let tasks = task_storage.read().unwrap();
+        let tasks = task_storage.load().unwrap();
         assert!(tasks.iter().next().unwrap().is_done());
         cleanup(&filename);
     }

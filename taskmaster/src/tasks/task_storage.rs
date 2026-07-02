@@ -8,8 +8,8 @@ use anyhow::Result;
 use crate::tasks::task_list::TaskList;
 
 pub trait TaskStorage {
-    fn read(&self) -> Result<TaskList>;
-    fn write(&self, task_list: &TaskList) -> Result<()>;
+    fn load(&self) -> Result<TaskList>;
+    fn save(&self, task_list: &TaskList) -> Result<()>;
 }
 pub struct JsonFileTaskStorage {
     filename: String,
@@ -24,7 +24,7 @@ impl JsonFileTaskStorage {
 }
 
 impl TaskStorage for JsonFileTaskStorage {
-    fn read(&self) -> Result<TaskList> {
+    fn load(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -46,7 +46,7 @@ impl TaskStorage for JsonFileTaskStorage {
         Ok(tasks)
     }
 
-    fn write(&self, task_list: &TaskList) -> Result<()> {
+    fn save(&self, task_list: &TaskList) -> Result<()> {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -81,8 +81,8 @@ mod tests {
         let mut task_list = TaskList::default();
         let task = crate::tasks::task::Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         task_list.add_task(task);
-        storage.write(&task_list).unwrap();
-        let read_task_list = storage.read().unwrap();
+        storage.save(&task_list).unwrap();
+        let read_task_list = storage.load().unwrap();
         assert_eq!(task_list.len(), read_task_list.len());
         assert_eq!(task_list, read_task_list);
         let _ = fs::remove_file(&filename);
