@@ -80,7 +80,7 @@ mod tests {
         let storage = JsonFileTaskStorage::new(&filename);
         let mut task_list = TaskList::default();
         let task = crate::tasks::task::Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
-        task_list.add_task(task);
+        assert!(task_list.add_task(task).is_ok());
         storage.save(&task_list).unwrap();
         let read_task_list = storage.load().unwrap();
         assert_eq!(task_list.len(), read_task_list.len());

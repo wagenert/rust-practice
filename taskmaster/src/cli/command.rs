@@ -38,7 +38,7 @@ pub fn create_task(task_storage: &dyn TaskStorage, title: String) -> Result<()> 
 
     let task_id = uuid::Uuid::new_v4();
     let new_task = Task::new(task_id, title);
-    tasks.add_task(new_task);
+    tasks.add_task(new_task)?;
     task_storage.save(&tasks)
 }
 

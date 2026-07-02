@@ -3,14 +3,29 @@ use std::collections::{HashMap, hash_map::Values};
 use crate::tasks::task::{Task, TaskId};
 use serde::{Deserialize, Serialize};
 
+#[derive(thiserror::Error, Debug)]
+pub enum TaskError {
+    #[error("Task not found: {id}")]
+    TaskNotFound { id: TaskId },
+
+    #[error("Duplicate task: {title}")]
+    DuplicateTask { title: String },
+}
+
 #[derive(PartialEq, Default, Serialize, Deserialize, Debug)]
 pub struct TaskList {
     tasks: HashMap<TaskId, Task>,
 }
 
 impl TaskList {
-    pub fn add_task(&mut self, task: Task) {
+    pub fn add_task(&mut self, task: Task) -> Result<(), TaskError> {
+        if self.tasks.iter().any(|(_, t)| t.title() == task.title()) {
+            return Err(TaskError::DuplicateTask {
+                title: task.title().to_string(),
+            });
+        }
         self.tasks.insert(task.id(), task);
+        Ok(())
     }
 
     pub fn len(&self) -> usize {
@@ -55,7 +70,7 @@ mod tests {
 
         let task_id = uuid::Uuid::new_v4();
         let task = Task::new(task_id, "Test Task".to_string());
-        task_list.add_task(task);
+        assert!(task_list.add_task(task).is_ok());
 
         assert_eq!(task_list.len(), 1);
 
@@ -70,7 +85,11 @@ mod tests {
     fn test_task_list_marks_task_done_by_id() {
         let mut task_list = TaskList::default();
         let task_id = uuid::Uuid::new_v4();
-        task_list.add_task(Task::new(task_id, "HashMap lookup".to_string()));
+        assert!(
+            task_list
+                .add_task(Task::new(task_id, "HashMap lookup".to_string()))
+                .is_ok()
+        );
 
         assert!(task_list.mark_done(task_id));
 
@@ -85,9 +104,21 @@ mod tests {
         let mut task_list = TaskList::default();
 
         let task_id = uuid::Uuid::new_v4();
-        task_list.add_task(Task::new(task_id, "First".to_string()));
-        task_list.add_task(Task::new(task_id, "First".to_string()));
-        task_list.add_task(Task::new(task_id, "Second".to_string()));
+        assert!(
+            task_list
+                .add_task(Task::new(task_id, "First".to_string()))
+                .is_ok()
+        );
+        assert!(
+            task_list
+                .add_task(Task::new(task_id, "First".to_string()))
+                .is_ok()
+        );
+        assert!(
+            task_list
+                .add_task(Task::new(task_id, "Second".to_string()))
+                .is_ok()
+        );
 
         assert_eq!(task_list.len(), 1);
         let task = task_list
