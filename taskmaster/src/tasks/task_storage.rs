@@ -7,22 +7,30 @@ use anyhow::Result;
 
 use crate::tasks::task_list::TaskList;
 
-pub struct TaskStorage<'a> {
-    filename: &'a str,
+pub trait TaskStorage {
+    fn read(&self) -> Result<TaskList>;
+    fn write(&self, task_list: &TaskList) -> Result<()>;
+}
+pub struct JsonFileTaskStorage {
+    filename: String,
 }
 
-impl<'a> TaskStorage<'a> {
-    pub fn new(filename: &'a str) -> Self {
-        Self { filename }
+impl JsonFileTaskStorage {
+    pub fn new(filename: &str) -> JsonFileTaskStorage {
+        Self {
+            filename: filename.to_string(),
+        }
     }
+}
 
-    pub fn read(&self) -> Result<TaskList> {
+impl TaskStorage for JsonFileTaskStorage {
+    fn read(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(false)
-            .open(self.filename)?;
+            .open(&self.filename)?;
         file.lock_shared()?;
         let read_buf = BufReader::new(&file);
         let tasks = match serde_json::from_reader(read_buf) {
@@ -38,12 +46,12 @@ impl<'a> TaskStorage<'a> {
         Ok(tasks)
     }
 
-    pub fn write(&self, task_list: &TaskList) -> Result<()> {
+    fn write(&self, task_list: &TaskList) -> Result<()> {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .open(self.filename)?;
+            .open(&self.filename)?;
         file.lock()?;
         let write_buf = BufWriter::new(&file);
         serde_json::to_writer(write_buf, task_list)?;
@@ -69,7 +77,7 @@ mod tests {
     #[test]
     fn test_read_write() {
         let filename = test_filename();
-        let storage = TaskStorage::new(&filename);
+        let storage = JsonFileTaskStorage::new(&filename);
         let mut task_list = TaskList::default();
         let task = crate::tasks::task::Task::new(uuid::Uuid::new_v4(), "Test Task".to_string());
         task_list.add_task(task);

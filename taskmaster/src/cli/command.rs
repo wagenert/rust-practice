@@ -21,7 +21,7 @@ pub enum Command {
     },
 }
 
-pub fn mark_task_done(task_storage: &TaskStorage, task_id: TaskId) -> Result<()> {
+pub fn mark_task_done(task_storage: &dyn TaskStorage, task_id: TaskId) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
     if let Some(task) = tasks.get_mut(task_id) {
@@ -33,7 +33,7 @@ pub fn mark_task_done(task_storage: &TaskStorage, task_id: TaskId) -> Result<()>
     }
 }
 
-pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
+pub fn create_task(task_storage: &dyn TaskStorage, title: String) -> Result<()> {
     let mut tasks = task_storage.read()?;
 
     let task_id = uuid::Uuid::new_v4();
@@ -42,7 +42,7 @@ pub fn create_task(task_storage: &TaskStorage, title: String) -> Result<()> {
     task_storage.write(&tasks)
 }
 
-pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
+pub fn list_tasks(task_storage: &dyn TaskStorage) -> Result<()> {
     let tasks = task_storage.read()?;
     if tasks.is_empty() {
         println!("No tasks found.");
@@ -58,6 +58,7 @@ pub fn list_tasks(task_storage: &TaskStorage) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tasks::task_storage::JsonFileTaskStorage;
     use std::{
         fs,
         sync::atomic::{AtomicUsize, Ordering},
@@ -65,11 +66,10 @@ mod tests {
 
     static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-    fn test_storage() -> (TaskStorage<'static>, &'static str) {
+    fn test_storage() -> (JsonFileTaskStorage, String) {
         let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::SeqCst);
         let filename = format!("test_tasks_command_{id}.json");
-        let filename = Box::leak(filename.into_boxed_str());
-        (TaskStorage::new(filename), filename)
+        (JsonFileTaskStorage::new(&filename), filename)
     }
 
     fn cleanup(filename: &str) {
@@ -80,38 +80,41 @@ mod tests {
     fn test_create_task() {
         let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
-        let result = create_task(&task_storage, title.clone());
+        let task_storage = &task_storage as &dyn TaskStorage;
+        let result = create_task(task_storage, title.clone());
         assert!(result.is_ok());
 
         let tasks = task_storage.read().unwrap();
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks.iter().next().unwrap().title(), &title);
-        cleanup(filename);
+        cleanup(&filename);
     }
 
     #[test]
     fn test_mark_task_done() {
         let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
-        create_task(&task_storage, title.clone()).unwrap();
+        let task_storage = &task_storage as &dyn TaskStorage;
+        create_task(task_storage, title.clone()).unwrap();
 
         let task_id = task_storage.read().unwrap().iter().next().unwrap().id();
-        let result = mark_task_done(&task_storage, task_id);
+        let result = mark_task_done(task_storage, task_id);
         assert!(result.is_ok());
 
         let tasks = task_storage.read().unwrap();
         assert!(tasks.iter().next().unwrap().is_done());
-        cleanup(filename);
+        cleanup(&filename);
     }
 
     #[test]
     fn test_list_tasks() {
         let (task_storage, filename) = test_storage();
         let title = "Test Task".to_string();
-        create_task(&task_storage, title.clone()).unwrap();
+        let task_storage = &task_storage as &dyn TaskStorage;
+        create_task(task_storage, title.clone()).unwrap();
 
-        let result = list_tasks(&task_storage);
+        let result = list_tasks(task_storage);
         assert!(result.is_ok());
-        cleanup(filename);
+        cleanup(&filename);
     }
 }
