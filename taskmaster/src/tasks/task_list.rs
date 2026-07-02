@@ -28,6 +28,19 @@ impl TaskList {
     pub fn get_mut(&mut self, id: TaskId) -> Option<&mut Task> {
         self.tasks.get_mut(&id)
     }
+
+    pub fn get(&self, id: TaskId) -> Option<&Task> {
+        self.tasks.get(&id)
+    }
+
+    pub fn mark_done(&mut self, id: TaskId) -> bool {
+        if let Some(task) = self.tasks.get_mut(&id) {
+            task.mark_done();
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -59,13 +72,10 @@ mod tests {
         let task_id = uuid::Uuid::new_v4();
         task_list.add_task(Task::new(task_id, "HashMap lookup".to_string()));
 
-        let task = task_list
-            .get_mut(task_id)
-            .expect("task with id 42 should be retrievable");
-        task.mark_done();
+        assert!(task_list.mark_done(task_id));
 
         let task = task_list
-            .get_mut(task_id)
+            .get(task_id)
             .expect("task with id 42 should still exist");
         assert!(task.is_done());
     }
