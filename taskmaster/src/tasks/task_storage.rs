@@ -11,24 +11,26 @@ pub trait TaskStorage {
     fn read(&self) -> Result<TaskList>;
     fn write(&self, task_list: &TaskList) -> Result<()>;
 }
-pub struct JsonFileTaskStorage<'a> {
-    filename: &'a str,
+pub struct JsonFileTaskStorage {
+    filename: String,
 }
 
-impl<'a> JsonFileTaskStorage<'a> {
-    pub fn new(filename: &'a str) -> Self {
-        Self { filename }
+impl JsonFileTaskStorage {
+    pub fn new(filename: &str) -> JsonFileTaskStorage {
+        Self {
+            filename: filename.to_string(),
+        }
     }
 }
 
-impl<'a> TaskStorage for JsonFileTaskStorage<'a> {
+impl TaskStorage for JsonFileTaskStorage {
     fn read(&self) -> Result<TaskList> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(false)
-            .open(self.filename)?;
+            .open(&self.filename)?;
         file.lock_shared()?;
         let read_buf = BufReader::new(&file);
         let tasks = match serde_json::from_reader(read_buf) {
@@ -49,7 +51,7 @@ impl<'a> TaskStorage for JsonFileTaskStorage<'a> {
             .write(true)
             .create(true)
             .truncate(true)
-            .open(self.filename)?;
+            .open(&self.filename)?;
         file.lock()?;
         let write_buf = BufWriter::new(&file);
         serde_json::to_writer(write_buf, task_list)?;
